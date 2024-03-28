@@ -6,11 +6,10 @@ import (
     "os"
     "bufio"
     "io"
-    "mime"
-    "mime/multipart"
     "strconv"
     "strings"
     "path/filepath"
+    "flag"
 )
 
 var home string
@@ -18,23 +17,13 @@ var home string
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
     
-    if r.Method != "POST"{
-    	return
+    multipartReader, err := r.MultipartReader()
+    if err != nil {
+    	fmt.Println(err)
+    	return 
     }
-    // reader, err := r.MultipartReader()
-    // if err != nil {
-    // 	fmt.Println(err)
-    // 	return 
-    // }
 
-	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil {
-		fmt.Println(err)
-		return 
-	}
-	multipartReader := multipart.NewReader(r.Body, params["boundary"])
-	defer r.Body.Close()
-
+    path := r.URL.Path
 
 	partr, err := multipartReader.NextPart()
 	if err != nil {
@@ -42,7 +31,6 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer partr.Close()
 
-	// ***** need change ****
 	outputFile, err := os.Create(home + r.URL.Path + partr.FileName())
 	if err != nil {
 		fmt.Println(err)
@@ -53,12 +41,18 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	io.Copy(outputWriter, partr)
 
-	fmt.Fprintf(w, "Successfully Uploaded File\n")
+	fmt.Fprintf(w, partr.FileName() + " has Uploaded to "+ path + "\n")
 }
 
 
-func get(w http.ResponseWriter, r *http.Request) {
+func gepo(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.RemoteAddr, r.Method, r.URL.Path)
+
+	if r.Method == "POST"{
+		uploadFile(w, r)
+		return
+	}
+
 
 	path := r.URL.Path
 	file, err := os.Open(home + path)
@@ -170,7 +164,7 @@ func respDir(w http.ResponseWriter, r *http.Request, path string){
     sb.WriteString("<h1>Directory listing for ")
     sb.WriteString(path)
     sb.WriteString("</h1>\n")
-    sb.WriteString("<form method=\"post\" enctype=\"multipart/form-data\" action=\"/uploadF\">\n")
+    sb.WriteString("<form method=\"post\" enctype=\"multipart/form-data\">\n")
     sb.WriteString("<input type=\"file\" name=\"file\" required=\"required\" >")
     sb.WriteString("&gt;&gt;")
     sb.WriteString("<button type=\"submit\">Upload</button>")
@@ -224,16 +218,28 @@ func respDir(w http.ResponseWriter, r *http.Request, path string){
 }
 
 
-func setupRoutes() {
-    http.HandleFunc("/uploadF", uploadFile)
-    http.HandleFunc("/", get)
-    http.ListenAndServe(":11111", nil)
+func start(port string) {
+    http.HandleFunc("/", gepo)
+    http.ListenAndServe(":"+port, nil)
 }
 
 
 func main() {
-    fmt.Println("Listening")
-    setupRoutes()
+	port := "11111"
+	flag.PrintDefaults()
+    flag.Parse() 
+    if flag.NArg() == 1 {
+	 	port = flag.Arg(0)
+    }
+
+    n, err := strconv.Atoi(port)
+    if err != nil || n <= 0 || n > 65535{
+    	fmt.Println("Invalid port! Port value is a number between 0 and 65535")
+    	return 
+    }
+
+    fmt.Println("Listening on http://127.0.0.1:" + port)
+    start(port)
 }
 
 
