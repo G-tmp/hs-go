@@ -6,10 +6,14 @@ import (
     "os"
     "bufio"
     "io"
+    "io/fs"
     "strconv"
     "strings"
+    "sort"
     "path/filepath"
     "flag"
+    "log"
+    "errors"
 )
 
 var home string
@@ -19,7 +23,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
     
     multipartReader, err := r.MultipartReader()
     if err != nil {
-    	fmt.Println(err)
+    	log.Println(err)
     	return 
     }
 
@@ -27,13 +31,13 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	partr, err := multipartReader.NextPart()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	defer partr.Close()
 
 	outputFile, err := os.Create(home + r.URL.Path + partr.FileName())
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return 
 	}
 	defer outputFile.Close()
@@ -46,7 +50,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 
 func gepo(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.RemoteAddr, r.Method, r.URL.Path)
+	fmt.Println("-", r.RemoteAddr, r.Method, r.URL.Path)
 
 	if r.Method == "POST"{
 		uploadFile(w, r)
@@ -57,54 +61,65 @@ func gepo(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	file, err := os.Open(home + path)
 	if err != nil {
-		http.NotFound(w, r)
+		if errors.Is(err, fs.ErrNotExist) {
+			http.NotFound(w, r)
+		} else if errors.Is(err, fs.ErrPermission) {
+			http.Error(w, "403 Forbidden", http.StatusForbidden)
+		}
+
+		file.Close()
 		return 
 	}
 	defer file.Close()
 
 	info, err := file.Stat()
 	if err != nil {
+		log.Println(err)
 		http.NotFound(w, r)
 		return 
 	}
 
 	if info.IsDir(){
-		respDir(w, r, path)
-		return
+		respDir(w, r, path, false)
+	}else {
+		respFile(w, r, file)
 	}
 
-	respFile(w, r, file)
 }
 
 
 func respFile(w http.ResponseWriter, r *http.Request, file *os.File){
 	if  r.Header.Get("Range") != ""{
-		getPart(w, r, file)
+		partialReq(w, r, file)
 		return
 	}
 
 	info, err := file.Stat()
 	if err != nil {
+		log.Println(err)
 		http.NotFound(w, r)
 		return 
 	}
 
 	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10)) 
 	w.Header().Set("Accept-Ranges", "bytes")
-	io.Copy(w, file)
-
+	_, err = io.Copy(w, file)
+	if err != nil {
+		log.Println(err)
+		return 
+	}
 }
 
 
 // handle range request
-func getPart(w http.ResponseWriter, r *http.Request, file *os.File){
+func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
 
 	var start, end int64
 	fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end)
 
 	info, err := file.Stat()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err)
 		http.NotFound(w, r)
 		return
 	}
@@ -130,24 +145,42 @@ func getPart(w http.ResponseWriter, r *http.Request, file *os.File){
 	
 	_, err = file.Seek(start, 0)
 	if err != nil {
-		fmt.Println(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	_, err = io.CopyN(w, file, end-start+1)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err)
 		return
 	}
 
 }
 
 
-func respDir(w http.ResponseWriter, r *http.Request, path string){
+func respDir(w http.ResponseWriter, r *http.Request, path string, showHidden bool){
 	files, err := os.ReadDir(home + path)
 	if err != nil {
-        fmt.Println(err)
+        log.Println(err)
         return
+    }
+
+    // ignore case sensitive
+    sort.Slice(files, 
+        func(i, j int) bool {
+            return strings.ToLower(files[i].Name()) < strings.ToLower(files[j].Name()) 
+    })
+
+    // filter hidden files 
+    if !showHidden {
+    	n := 0
+    	for _, f := range files {
+    		if f.Name()[0] != '.'{
+    			files[n] = f
+    			n++
+    		}
+    	}
+    	files = files[0:n]
     }
 
 	var sb strings.Builder
@@ -170,6 +203,8 @@ func respDir(w http.ResponseWriter, r *http.Request, path string){
     sb.WriteString("<button type=\"submit\">Upload</button>")
     sb.WriteString("</form>")
     sb.WriteString("<hr>\n")
+
+    // parent directory
     if path == "/" {
     	sb.WriteString("/")
     } else {
@@ -244,5 +279,6 @@ func main() {
 
 
 func init(){
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	home, _ = os.UserHomeDir()
 }
