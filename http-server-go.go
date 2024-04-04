@@ -38,6 +38,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	outputFile, err := os.Create(home + r.URL.Path + partr.FileName())
 	if err != nil {
 		log.Println(err)
+		ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
 		return 
 	}
 	defer outputFile.Close()
@@ -62,9 +63,9 @@ func gepo(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(home + path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			http.NotFound(w, r)
+			ErrorHtml(w, "404 Not Found", http.StatusNotFound)
 		} else if errors.Is(err, fs.ErrPermission) {
-			http.Error(w, "403 Forbidden", http.StatusForbidden)
+			ErrorHtml(w, "403 Forbidden", http.StatusForbidden)
 		}
 
 		file.Close()
@@ -146,7 +147,7 @@ func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
 	_, err = file.Seek(start, 0)
 	if err != nil {
 		log.Println(err)
-		http.Error(w, "500 Internal Server Error", http.StatusInternalServerError)
+		ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	_, err = io.CopyN(w, file, end-start+1)
@@ -249,13 +250,33 @@ func respDir(w http.ResponseWriter, r *http.Request, path string, showHidden boo
     sb.WriteString("</ul>\n")
     sb.WriteString("</body>\n</html>")
 
-    fmt.Fprintf(w, sb.String())
+    w.Write([]byte(sb.String()))
+}
+
+
+func  ErrorHtml(w http.ResponseWriter, content string, code int){
+	html :=fmt.Sprintf(
+		`<!DOCTYPE html>
+		<html>
+		<head>
+		<meta name="Content-Type" content="text/html; charset=utf-8">
+		<title>%d</title>
+		</head>
+		<body>
+		<center><h2>%s<h2><center> 
+		</body>
+		</html>`, code, content)
+
+	w.Header().Set("Content-Length", strconv.Itoa(len([]byte(html))) )
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(code)
+	w.Write([]byte(html))
 }
 
 
 func start(port string) {
     http.HandleFunc("/", gepo)
-    http.ListenAndServe(":"+port, nil)
+    http.ListenAndServe(":" + port, nil)
 }
 
 
