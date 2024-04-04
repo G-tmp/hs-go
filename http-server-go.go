@@ -27,26 +27,34 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
     	return 
     }
 
-    path := r.URL.Path
+	for {
+		partr, err := multipartReader.NextPart()
+		if err != nil  {
+			if err == io.EOF{
+				break
+			}else {
+				log.Println(err)
+				ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
+				return 
+			}
+		}
+		defer partr.Close()
+		fmt.Println(partr.Header)
 
-	partr, err := multipartReader.NextPart()
-	if err != nil {
-		log.Println(err)
+		outputFile, err := os.Create(home + r.URL.Path + partr.FileName())
+		if err != nil {
+			log.Println(err)
+			ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
+			return 
+		}
+		defer outputFile.Close()
+		outputWriter := bufio.NewWriter(outputFile)
+
+		io.Copy(outputWriter, partr)
 	}
-	defer partr.Close()
 
-	outputFile, err := os.Create(home + r.URL.Path + partr.FileName())
-	if err != nil {
-		log.Println(err)
-		ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
-		return 
-	}
-	defer outputFile.Close()
-	outputWriter := bufio.NewWriter(outputFile)
-
-	io.Copy(outputWriter, partr)
-
-	fmt.Fprintf(w, partr.FileName() + " has Uploaded to "+ path + "\n")
+	fmt.Fprintf(w,   "XD"+"\n")
+	// fmt.Fprintf(w, partr.FileName() + " has Uploaded to "+ path + "\n")
 }
 
 
@@ -68,7 +76,6 @@ func gepo(w http.ResponseWriter, r *http.Request) {
 			ErrorHtml(w, "403 Forbidden", http.StatusForbidden)
 		}
 
-		file.Close()
 		return 
 	}
 	defer file.Close()
@@ -199,7 +206,7 @@ func respDir(w http.ResponseWriter, r *http.Request, path string, showHidden boo
     sb.WriteString(path)
     sb.WriteString("</h1>\n")
     sb.WriteString("<form method=\"post\" enctype=\"multipart/form-data\">\n")
-    sb.WriteString("<input type=\"file\" name=\"file\" required=\"required\" >")
+    sb.WriteString("<input type=\"file\" name=\"file\" required=\"required\" multiple>")
     sb.WriteString("&gt;&gt;")
     sb.WriteString("<button type=\"submit\">Upload</button>")
     sb.WriteString("</form>")
