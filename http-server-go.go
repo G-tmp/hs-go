@@ -59,7 +59,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 
 func gepo(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("-", r.RemoteAddr, r.Method, r.URL.Path)
+	fmt.Println("+", r.RemoteAddr, r.Method, r.URL.Path)
 
 	if r.Method == "POST"{
 		uploadFile(w, r)
@@ -87,8 +87,36 @@ func gepo(w http.ResponseWriter, r *http.Request) {
 		return 
 	}
 
+	// check parameter, set cookie and redirect
+	showHidden := r.URL.Query().Get("showHidden")
+	if showHidden != "" {
+		var cookie http.Cookie
+		if showHidden == "true" {
+			cookie = http.Cookie{Name: "showHidden", Value: "true", Path: "/"}
+		} else{
+			cookie = http.Cookie{Name: "showHidden", Value: "false", Path: "/"}
+		}
+
+		http.SetCookie(w, &cookie)
+		http.Redirect(w, r, path, http.StatusFound)
+		return
+	}
+
+
 	if info.IsDir(){
-		respDir(w, r, path, false)
+
+	    // check cookie
+		showHidden, err := r.Cookie("showHidden")
+	    if err == nil {
+	    	if showHidden.Value == "true" {
+				respDir(w, r, path, true)
+	    	}else {
+				respDir(w, r, path, false)
+	    	}
+	    }else if err ==  http.ErrNoCookie {
+	    	respDir(w, r, path, false)
+	    }
+
 	}else {
 		respFile(w, r, file)
 	}
@@ -205,6 +233,11 @@ func respDir(w http.ResponseWriter, r *http.Request, path string, showHidden boo
     sb.WriteString("<h1>Directory listing for ")
     sb.WriteString(path)
     sb.WriteString("</h1>\n")
+    if showHidden {
+	    sb.WriteString("<a href=\"?showHidden=false\"><button>Show Hidden Files</button></a> on <p></p>")
+    }else {
+		sb.WriteString("<a href=\"?showHidden=true\"><button>Show Hidden Files</button></a> off <p></p>")
+    }
     sb.WriteString("<form method=\"post\" enctype=\"multipart/form-data\">\n")
     sb.WriteString("<input type=\"file\" name=\"file\" required=\"required\" multiple>")
     sb.WriteString("&gt;&gt;")

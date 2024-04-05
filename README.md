@@ -12,6 +12,6 @@
 
 * http.DetectContentType() unable to detect flac 
 
-* err ==  no work, use Errors.Is()
+* if err ==  no work, use Errors.Is()
 
 * http.Error() delete content-type filed, so it detect content-type automatically
