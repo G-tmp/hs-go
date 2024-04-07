@@ -11,7 +11,11 @@ import (
 
 func start(port string) {
     http.HandleFunc("/", httpRes.Gepo)
-    http.ListenAndServe(":" + port, nil)
+    err := http.ListenAndServe(":" + port, nil)
+    if err != nil {
+        fmt.Println(err)
+        return 
+    }
 }
 
 
