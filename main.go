@@ -9,9 +9,26 @@ import (
 )
 
 
+type Engine struct{}
+
+
+func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("+", r.RemoteAddr, r.Method, r.URL.Path)
+    
+    switch r.Method {
+    case "GET", "HEAD":
+        httpRes.Get(w, r)
+    case "POST":
+        httpRes.Post(w, r)
+    default:
+        http.Error(w, "unsupported method" , http.StatusMethodNotAllowed)
+    }
+}
+
+
 func start(port string) {
-    http.HandleFunc("/", httpRes.Gepo)
-    err := http.ListenAndServe(":" + port, nil)
+    engine := new(Engine)
+    err := http.ListenAndServe(":" + port, engine)
     if err != nil {
         fmt.Println(err)
         return 

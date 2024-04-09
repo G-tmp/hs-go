@@ -15,24 +15,11 @@ import (
     "github.com/gabriel-vasile/mimetype"
 )
 
+
 var Home string
 
 
-func Gepo(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("+", r.RemoteAddr, r.Method, r.URL.Path)
-
-	if r.Method == "POST"{
-		uploadFile(w, r)
-		return
-	}else if r.Method == "GET"{
-		get(w, r)
-		return
-	}
-
-}
-
-
-func get(w http.ResponseWriter, r *http.Request){
+func Get(w http.ResponseWriter, r *http.Request){
 	path := r.URL.Path
 	file, err := os.Open(Home + path)
 	if err != nil {

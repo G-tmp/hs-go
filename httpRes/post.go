@@ -12,6 +12,12 @@ import (
 )
 
 
+func Post(w http.ResponseWriter, r *http.Request){
+
+
+	uploadFile(w, r)
+}
+
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
     
@@ -29,8 +35,8 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF{
 				break
 			}else {
-				log.Println(err)
 				utils.ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
+				log.Println(err)
 				return 
 			}
 		}
