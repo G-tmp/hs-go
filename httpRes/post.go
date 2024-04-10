@@ -5,10 +5,12 @@ import (
     "net/http"
     "os"
     "bufio"
+    "path/filepath"
     "io"
     "log"
     "strings"
     "g-tmp/hs-go/utils"
+    "g-tmp/hs-go/configs"
 )
 
 
@@ -42,7 +44,9 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 		defer partr.Close()
 
-		outputFile, err := os.Create(Home + r.URL.Path + partr.FileName())
+		abPath := filepath.Join(configs.Root, r.URL.Path, partr.FileName())
+		log.Println(abPath)
+		outputFile, err := os.Create(abPath)
 		if err != nil {
 			log.Println(err)
 			utils.ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)

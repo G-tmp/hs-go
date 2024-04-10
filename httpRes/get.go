@@ -6,29 +6,27 @@ import (
     "os"
     "io"
     "io/fs"
+    "path/filepath"
     "strconv"
     "strings"
     "sort"
     "log"
     "errors"
     "g-tmp/hs-go/utils"
+    "g-tmp/hs-go/configs"
     "github.com/gabriel-vasile/mimetype"
 )
 
 
-var Home string
-
-
 func Get(w http.ResponseWriter, r *http.Request){
-	path := r.URL.Path
-	file, err := os.Open(Home + path)
+	file, err := os.Open(filepath.Join(configs.Root, r.URL.Path))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			utils.ErrorHtml(w, "404 Not Found", http.StatusNotFound)
 		} else if errors.Is(err, fs.ErrPermission) {
 			utils.ErrorHtml(w, "403 Forbidden", http.StatusForbidden)
 		}
-
+		log.Println(err)
 		return 
 	}
 	defer file.Close()
@@ -44,7 +42,7 @@ func Get(w http.ResponseWriter, r *http.Request){
 		}
 
 		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, path, http.StatusFound)
+		http.Redirect(w, r, r.URL.Path, http.StatusFound)
 		return
 	}
 
@@ -62,12 +60,12 @@ func Get(w http.ResponseWriter, r *http.Request){
 		showHidden, err := r.Cookie("showHidden")
 	    if err == nil {
 	    	if showHidden.Value == "true" {
-				respDir(w, r, path, true)
+				respDir(w, r, true)
 	    	}else {
-				respDir(w, r, path, false)
+				respDir(w, r, false)
 	    	}
 	    }else if err ==  http.ErrNoCookie {
-	    	respDir(w, r, path, false)
+	    	respDir(w, r, false)
 	    }
 
 	}else {
@@ -90,7 +88,7 @@ func respFile(w http.ResponseWriter, r *http.Request, file *os.File){
 		return 
 	}
 
-	mtype, _ := mimetype.DetectFile(Home + r.URL.Path)
+	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, r.URL.Path))
 
 	w.Header().Set("Content-Type", mtype.String()) 
 	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10)) 
@@ -122,7 +120,7 @@ func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
 		end = info.Size() - 1
 	}
 	
-	mtype, _ := mimetype.DetectFile(Home + r.URL.Path)
+	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, r.URL.Path))
    	rg := fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size())
 	w.Header().Set("Content-Range", rg)
 	w.Header().Set("Content-Length", strconv.FormatInt(end-start+1, 10))
@@ -143,8 +141,8 @@ func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
 }
 
 
-func respDir(w http.ResponseWriter, r *http.Request, path string, showHidden bool){
-	files, err := os.ReadDir(Home + path)
+func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
+	files, err := os.ReadDir(filepath.Join(configs.Root, r.URL.Path))
 	if err != nil {
         log.Println(err)
         return
@@ -168,13 +166,7 @@ func respDir(w http.ResponseWriter, r *http.Request, path string, showHidden boo
     	files = files[0:n]
     }
 
-    index := utils.Index(path, files, showHidden)
+    index := utils.Index(r.URL.Path, files, showHidden)
 
     w.Write([]byte(index))
-}
-
-
-func init(){
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	Home, _ = os.UserHomeDir()
 }
