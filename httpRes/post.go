@@ -5,6 +5,7 @@ import (
     "net/http"
     "os"
     "bufio"
+    "net/url"
     "path/filepath"
     "io"
     "log"
@@ -15,7 +16,7 @@ import (
 
 
 func Post(w http.ResponseWriter, r *http.Request){
-
+	path, _ = url.PathUnescape(r.URL.EscapedPath())
 
 	uploadFile(w, r)
 }
@@ -44,7 +45,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		}
 		defer partr.Close()
 
-		abPath := filepath.Join(configs.Root, r.URL.Path, partr.FileName())
+		abPath := filepath.Join(configs.Root, path, partr.FileName())
 		log.Println(abPath)
 		outputFile, err := os.Create(abPath)
 		if err != nil {

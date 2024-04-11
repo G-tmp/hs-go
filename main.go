@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "net/http"
+    "net/url"
     "strconv"
     "flag"
     "log"
@@ -16,8 +17,12 @@ type Engine struct{}
 
 
 func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    fmt.Println("+", r.RemoteAddr, r.Method, r.URL.Path)
-    
+    path, err := url.PathUnescape(r.URL.EscapedPath())
+    if err != nil {
+        log.Println(err)
+    }
+    fmt.Println("+", r.RemoteAddr, r.Method, path)
+
     switch r.Method {
     case "GET", "HEAD":
         httpRes.Get(w, r)

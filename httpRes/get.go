@@ -3,6 +3,7 @@ package httpRes
 import (
     "fmt"
     "net/http"
+    "net/url"
     "os"
     "io"
     "io/fs"
@@ -18,8 +19,11 @@ import (
 )
 
 
+var path string
+
 func Get(w http.ResponseWriter, r *http.Request){
-	file, err := os.Open(filepath.Join(configs.Root, r.URL.Path))
+	path, _ = url.PathUnescape(r.URL.EscapedPath())
+	file, err := os.Open(filepath.Join(configs.Root, path))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			utils.ErrorHtml(w, "404 Not Found", http.StatusNotFound)
@@ -42,7 +46,7 @@ func Get(w http.ResponseWriter, r *http.Request){
 		}
 
 		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, r.URL.Path, http.StatusFound)
+		http.Redirect(w, r, path, http.StatusFound)
 		return
 	}
 
@@ -88,7 +92,7 @@ func respFile(w http.ResponseWriter, r *http.Request, file *os.File){
 		return 
 	}
 
-	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, r.URL.Path))
+	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, path))
 
 	w.Header().Set("Content-Type", mtype.String()) 
 	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10)) 
@@ -120,7 +124,7 @@ func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
 		end = info.Size() - 1
 	}
 	
-	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, r.URL.Path))
+	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, path))
    	rg := fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size())
 	w.Header().Set("Content-Range", rg)
 	w.Header().Set("Content-Length", strconv.FormatInt(end-start+1, 10))
@@ -142,7 +146,7 @@ func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
 
 
 func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
-	files, err := os.ReadDir(filepath.Join(configs.Root, r.URL.Path))
+	files, err := os.ReadDir(filepath.Join(configs.Root, path))
 	if err != nil {
         log.Println(err)
         return
@@ -166,7 +170,7 @@ func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
     	files = files[0:n]
     }
 
-    index := utils.Index(r.URL.Path, files, showHidden)
+    index := utils.Index(path, files, showHidden)
 
     w.Write([]byte(index))
 }

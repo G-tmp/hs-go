@@ -3,6 +3,7 @@ package utils
 import (
     "fmt"
     "net/http"
+    "net/url"
     "os"
     "strconv"
     "strings"
@@ -56,7 +57,7 @@ func Index(path string, files []os.DirEntry, showHidden bool) string {
     	if f.IsDir(){
     		sb.WriteString("<li>")
     		sb.WriteString("<a href=\"")
-    		sb.WriteString(f.Name())
+            sb.WriteString(url.PathEscape(f.Name()))
     		sb.WriteString("/")
     		sb.WriteString("\">")
     		sb.WriteString("<strong>")
@@ -71,7 +72,7 @@ func Index(path string, files []os.DirEntry, showHidden bool) string {
     	if !f.IsDir(){
     		sb.WriteString("<li>")
     		sb.WriteString("<a href=\"")
-    		sb.WriteString(f.Name())
+            sb.WriteString(url.PathEscape(f.Name()))
     		sb.WriteString("\">")
     		sb.WriteString(f.Name())
     		sb.WriteString("</a>")
