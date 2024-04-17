@@ -29,8 +29,9 @@ func Get(w http.ResponseWriter, r *http.Request){
 			utils.ErrorHtml(w, "404 Not Found", http.StatusNotFound)
 		} else if errors.Is(err, fs.ErrPermission) {
 			utils.ErrorHtml(w, "403 Forbidden", http.StatusForbidden)
+		}else {
+			log.Println(err)
 		}
-		log.Println(err)
 		return 
 	}
 	defer file.Close()

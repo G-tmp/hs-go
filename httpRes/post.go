@@ -1,7 +1,6 @@
 package httpRes
 
 import (
-    // "fmt"
     "net/http"
     "os"
     "bufio"

@@ -11,15 +11,15 @@ import (
 )
 
 
-type Engine struct{}
+type Handler struct{}
 
 
-func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     path, err := url.PathUnescape(r.URL.EscapedPath())
     if err != nil {
         log.Println(err)
     }
-    fmt.Println("+", r.RemoteAddr, r.Method, path)
+    fmt.Println("+", r.RemoteAddr, r.Method, path, r.URL.RawQuery)
 
     switch r.Method {
     case "GET", "HEAD":
@@ -33,8 +33,8 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 
 func start(port int) {
-    engine := new(Engine)
-    err := http.ListenAndServe(":" + strconv.Itoa(port), engine)
+    httpHandler := new(Handler)
+    err := http.ListenAndServe(":" + strconv.Itoa(port), httpHandler)
     if err != nil {
         log.Println(err)
         return 

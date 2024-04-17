@@ -1,9 +1,19 @@
 # go-http-server
 
+ A tiny http server map local files
 
-## TIRED 😣
+ ```go run main.go [-p] [-d]```
+
+
+
+## dev
 
 * go version go1.22.1 linux/amd64
+
+* detect files mime types ```github.com/gabriel-vasile/mimetype```
+
+* MultipartReader support large size and multi-part upload 
+
 
 
 ## Encountered Problems
