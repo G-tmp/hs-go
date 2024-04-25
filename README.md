@@ -10,7 +10,7 @@
 
 * go version go1.22.1 linux/amd64
 
-* detect files mime types ```github.com/gabriel-vasile/mimetype```
+* detect files mime type ```github.com/gabriel-vasile/mimetype```
 
 * MultipartReader support large size and multi-part upload 
 
@@ -22,6 +22,8 @@
 
 * http.DetectContentType() unable to detect flac 
 
-* if err ==  no work, use Errors.Is()
+* if err ==  no work, use Errors.Is() instead
 
 * http.Error() delete content-type filed, so it detect content-type automatically
+
+* URL en/decode ```url.PathUnescape(r.URL.EscapedPath()) & url.PathEscape()```
