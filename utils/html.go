@@ -96,7 +96,7 @@ func  ErrorHtml(w http.ResponseWriter, content string, code int){
 		<title>%d</title>
 		</head>
 		<body>
-		<center><h2>%s<h2><center> 
+		<center><h2>%s</h2></center> 
 		</body>
 		</html>`, code, content)
 

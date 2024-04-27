@@ -8,7 +8,7 @@ import (
     "path/filepath"
     "io"
     "log"
-    "strings"
+    "errors"
     "g-tmp/hs-go/utils"
     "g-tmp/hs-go/configs"
 )
@@ -29,7 +29,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
     	return 
     }
 
-    var names []string
+    var content string
 
 	for {
 		partr, err := multipartReader.NextPart()
@@ -46,6 +46,14 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 		abPath := filepath.Join(configs.Root, path, partr.FileName())
 		log.Println(abPath)
+
+		// check uploaded files exist or not
+		if _, err := os.Stat(abPath); err == nil {
+			content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
+		}else if errors.Is(err, os.ErrNotExist) {
+			content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
+		}
+
 		outputFile, err := os.Create(abPath)
 		if err != nil {
 			log.Println(err)
@@ -53,12 +61,10 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer outputFile.Close()
-		outputWriter := bufio.NewWriter(outputFile)
-		names = append(names, partr.FileName())
 
-		io.Copy(outputWriter, partr)
+		bWriter := bufio.NewWriter(outputFile)
+		io.Copy(bWriter, partr)
 	}
 
-	s := strings.Join(names, "<p></p>")
-	utils.ErrorHtml(w, "Have Uploaded <p></p>" + s, http.StatusOK)
+	utils.ErrorHtml(w, "Uploaded <p></p>" + content, http.StatusOK)
 }
