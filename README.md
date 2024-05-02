@@ -27,3 +27,5 @@
 * http.Error() delete content-type filed, so it detect content-type automatically
 
 * URL en/decode ```url.PathUnescape(r.URL.EscapedPath()) & url.PathEscape()```
+
+* https://stackoverflow.com/questions/51359930/sorting-strings-with-numbers-in-filenames-with-golang

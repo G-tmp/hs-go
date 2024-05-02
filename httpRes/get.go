@@ -153,12 +153,12 @@ func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
         return
     }
 
-    // ignore case sensitive
-    sort.Slice(files, 
+    // tail sorting and ignore case sensitive
+	sort.Slice(files, 
         func(i, j int) bool {
-            return strings.ToLower(files[i].Name()) < strings.ToLower(files[j].Name()) 
+            return utils.TailSort(strings.ToLower(files[i].Name())) < utils.TailSort(strings.ToLower(files[j].Name())) 
     })
-
+    
     // filter hidden files 
     if !showHidden {
     	n := 0
