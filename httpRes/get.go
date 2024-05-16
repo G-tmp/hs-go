@@ -16,6 +16,7 @@ import (
     "g-tmp/hs-go/utils"
     "g-tmp/hs-go/configs"
     "github.com/gabriel-vasile/mimetype"
+    "facette.io/natsort"
 )
 
 
@@ -156,7 +157,7 @@ func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
     // tail sorting and ignore case sensitive
 	sort.Slice(files, 
         func(i, j int) bool {
-            return utils.TailSort(strings.ToLower(files[i].Name())) < utils.TailSort(strings.ToLower(files[j].Name())) 
+        	return natsort.Compare(strings.ToLower(files[i].Name()), strings.ToLower(files[j].Name()))
     })
     
     // filter hidden files 

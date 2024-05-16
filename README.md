@@ -10,7 +10,9 @@
 
 * go version go1.22.1 linux/amd64
 
-* detect files mime type ```github.com/gabriel-vasile/mimetype```
+* detect files mime type ```https://github.com/gabriel-vasile/mimetype```
+
+* natural sort ```https://github.com/facette/natsort```
 
 * MultipartReader support large size and multi-part upload 
 
