@@ -1,11 +1,8 @@
 package utils
 
 import (
-    "fmt"
-    "net/http"
     "net/url"
     "os"
-    "strconv"
     "strings"
     "path/filepath"
 )
@@ -84,24 +81,4 @@ func Index(path string, files []os.DirEntry, showHidden bool) string {
     sb.WriteString("</body>\n</html>")
 
     return sb.String()
-}
-
-
-func  ErrorHtml(w http.ResponseWriter, content string, code int){
-	html :=fmt.Sprintf(
-		`<!DOCTYPE html>
-		<html>
-		<head>
-		<meta name="Content-Type" content="text/html; charset=utf-8">
-		<title>%d</title>
-		</head>
-		<body>
-		<center><h2>%s</h2></center> 
-		</body>
-		</html>`, code, content)
-
-	w.Header().Set("Content-Length", strconv.Itoa(len([]byte(html))) )
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(code)
-	w.Write([]byte(html))
 }

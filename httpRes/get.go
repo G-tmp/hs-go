@@ -3,7 +3,6 @@ package httpRes
 import (
     "fmt"
     "net/http"
-    "net/url"
     "os"
     "io"
     "io/fs"
@@ -20,16 +19,15 @@ import (
 )
 
 
-var path string
 
-func Get(w http.ResponseWriter, r *http.Request){
-	path, _ = url.PathUnescape(r.URL.EscapedPath())
-	file, err := os.Open(filepath.Join(configs.Root, path))
+func Get(context *Context){
+
+	file, err := os.Open(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			utils.ErrorHtml(w, "404 Not Found", http.StatusNotFound)
+			context.HtmlR(404, "404 Not Found")
 		} else if errors.Is(err, fs.ErrPermission) {
-			utils.ErrorHtml(w, "403 Forbidden", http.StatusForbidden)
+			context.HtmlR(403, "403 Forbidden")
 		}else {
 			log.Println(err)
 		}
@@ -38,7 +36,7 @@ func Get(w http.ResponseWriter, r *http.Request){
 	defer file.Close()
 
 	// check parameter, set cookie and redirect
-	showHidden := r.URL.Query().Get("showHidden")
+	showHidden := context.Query("showHidden")
 	if showHidden != "" {
 		var cookie http.Cookie
 		if showHidden == "true" {
@@ -47,8 +45,8 @@ func Get(w http.ResponseWriter, r *http.Request){
 			cookie = http.Cookie{Name: "showHidden", Value: "false", Path: "/"}
 		}
 
-		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, path, http.StatusFound)
+		context.SetCookie(&cookie)
+		context.Redirect(context.Path)
 		return
 	}
 
@@ -56,99 +54,98 @@ func Get(w http.ResponseWriter, r *http.Request){
 	info, err := file.Stat()
 	if err != nil {
 		log.Println(err)
-		utils.ErrorHtml(w, "404 Not Found", http.StatusNotFound)
+			context.HtmlR(404, "404 Not Found")
 		return 
 	}
 
 	if info.IsDir(){
 
 	    // check cookie
-		showHidden, err := r.Cookie("showHidden")
+		showHidden, err := context.Cookie("showHidden")
 	    if err == nil {
 	    	if showHidden.Value == "true" {
-				respDir(w, r, true)
+				respDir(context, true)
 	    	}else {
-				respDir(w, r, false)
+				respDir(context, false)
 	    	}
 	    }else if err ==  http.ErrNoCookie {
-	    	respDir(w, r, false)
+	    	respDir(context, false)
 	    }
 
 	}else {
-		respFile(w, r, file)
+		respFile(context, file)
 	}
 
 }
 
 
-func respFile(w http.ResponseWriter, r *http.Request, file *os.File){
-	if  r.Header.Get("Range") != ""{
-		partialReq(w, r, file)
+func respFile(context *Context, file *os.File){
+	if  context.GetHeader("Range") != ""{
+		partialReq(context, file)
 		return
 	}
 
 	info, err := file.Stat()
 	if err != nil {
 		log.Println(err)
-		http.NotFound(w, r)
+		context.HtmlR(404, "404 Not Found")
 		return 
 	}
 
-	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, path))
+	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 
-	w.Header().Set("Content-Type", mtype.String()) 
-	w.Header().Set("Content-Length", strconv.FormatInt(info.Size(), 10)) 
-	w.Header().Set("Accept-Ranges", "bytes")
+	context.SetHeader("Content-Type", mtype.String()) 
+	context.SetHeader("Content-Length", strconv.FormatInt(info.Size(), 10)) 
+	context.SetHeader("Accept-Ranges", "bytes")
 	
-	io.Copy(w, file)
+	io.Copy(context.W, file)
 
 }
 
 
 // handle range request
-func partialReq(w http.ResponseWriter, r *http.Request, file *os.File){
+func partialReq(context *Context, file *os.File){
 
 	var start, end int64
-	fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end)
+	fmt.Sscanf(context.GetHeader("Range"), "bytes=%d-%d", &start, &end)
 
 	info, err := file.Stat()
 	if err != nil {
 		log.Println(err)
-		http.NotFound(w, r)
+		context.HtmlR(404, "404 Not Found")
 		return
 	}
 	if start < 0 ||start >= info.Size() ||end < 0 || end >= info.Size(){
-		w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
-		w.Write([]byte(fmt.Sprintf("out of index, length:%d",info.Size())))
+		context.HtmlR(416, fmt.Sprintf("out of index, length:%d",info.Size()))
 		return
 	}
 	if end == 0 {
 		end = info.Size() - 1
 	}
 	
-	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, path))
+	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
    	rg := fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size())
-	w.Header().Set("Content-Range", rg)
-	w.Header().Set("Content-Length", strconv.FormatInt(end-start+1, 10))
-	w.Header().Set("Accept-Ranges", "bytes")
-	w.Header().Set("Content-Type", mtype.String())
+	context.SetHeader("Content-Range", rg)
+	context.SetHeader("Content-Length", strconv.FormatInt(end - start + 1, 10))
+	context.SetHeader("Accept-Ranges", "bytes")
+	context.SetHeader("Content-Type", mtype.String())
 
-	w.WriteHeader(http.StatusPartialContent)
+	context.Status(206)
 	
 	_, err = file.Seek(start, 0)
 	if err != nil {
 		log.Println(err)
-		utils.ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
+		context.HtmlR(500, "500 Internal Server Error")
 		return
 	}
 	
-	io.CopyN(w, file, end-start+1)
+	io.CopyN(context.W, file, end - start + 1)
 	
 }
 
 
-func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
-	files, err := os.ReadDir(filepath.Join(configs.Root, path))
+func respDir(context *Context, showHidden bool){
+	files, err := os.ReadDir(filepath.Join(configs.Root, context.Path))
 	if err != nil {
         log.Println(err)
         return
@@ -172,7 +169,7 @@ func respDir(w http.ResponseWriter, r *http.Request, showHidden bool){
     	files = files[0:n]
     }
 
-    index := utils.Index(path, files, showHidden)
+    index := utils.Index(context.Path, files, showHidden)
 
-    w.Write([]byte(index))
+    context.Html(200, index)
 }

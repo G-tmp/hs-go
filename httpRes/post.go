@@ -1,29 +1,26 @@
 package httpRes
 
 import (
-    "net/http"
     "os"
     "bufio"
-    "net/url"
     "path/filepath"
     "io"
     "log"
     "errors"
-    "g-tmp/hs-go/utils"
     "g-tmp/hs-go/configs"
 )
 
 
-func Post(w http.ResponseWriter, r *http.Request){
-	path, _ = url.PathUnescape(r.URL.EscapedPath())
 
-	uploadFile(w, r)
+func Post(context *Context){
+
+	uploadFile(context)
 }
 
 
-func uploadFile(w http.ResponseWriter, r *http.Request) {
+func uploadFile(context *Context) {
     
-    multipartReader, err := r.MultipartReader()
+    multipartReader, err := context.R.MultipartReader()
     if err != nil {
     	log.Println(err)
     	return 
@@ -37,27 +34,27 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF{
 				break
 			}else {
-				utils.ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
+				context.HtmlR(500, "500 Internal Server Error")
 				log.Println(err)
 				return 
 			}
 		}
 		defer partr.Close()
 
-		abPath := filepath.Join(configs.Root, path, partr.FileName())
-		log.Println(abPath)
+		absPath := filepath.Join(configs.Root, context.Path, partr.FileName())
+		log.Println(absPath)
 
 		// check uploaded files exist or not
-		if _, err := os.Stat(abPath); err == nil {
+		if _, err := os.Stat(absPath); err == nil {
 			content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
 		}else if errors.Is(err, os.ErrNotExist) {
 			content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
 		}
 
-		outputFile, err := os.Create(abPath)
+		outputFile, err := os.Create(absPath)
 		if err != nil {
 			log.Println(err)
-			utils.ErrorHtml(w, "500 Internal Server Error", http.StatusInternalServerError)
+			context.HtmlR(500, "500 Internal Server Error")
 			return
 		}
 		defer outputFile.Close()
@@ -66,5 +63,5 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		io.Copy(bWriter, partr)
 	}
 
-	utils.ErrorHtml(w, "Uploaded <p></p>" + content, http.StatusOK)
+	context.HtmlR(200, "Uploaded <p></p>" + content)
 }

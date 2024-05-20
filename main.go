@@ -3,7 +3,6 @@ package main
 import (
     "fmt"
     "net/http"
-    "net/url"
     "strconv"
     "log"
     "g-tmp/hs-go/httpRes"
@@ -15,19 +14,17 @@ type Handler struct{}
 
 
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    path, err := url.PathUnescape(r.URL.EscapedPath())
-    if err != nil {
-        log.Println(err)
-    }
-    fmt.Println("+", r.RemoteAddr, r.Method, path, r.URL.RawQuery)
+    context := httpRes.NewContext(w, r)
 
-    switch r.Method {
+    fmt.Println("+", r.RemoteAddr, r.Method, context.Path, r.URL.RawQuery)
+
+    switch context.Method {
     case "GET", "HEAD":
-        httpRes.Get(w, r)
+        httpRes.Get(context)
     case "POST":
-        httpRes.Post(w, r)
+        httpRes.Post(context)
     default:
-        http.Error(w, "unsupported method" , http.StatusMethodNotAllowed)
+        context.HtmlR(405, "unsupported method")
     }
 }
 
