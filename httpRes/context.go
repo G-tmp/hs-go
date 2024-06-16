@@ -69,7 +69,7 @@ func (context *Context) Status(code int){
 
 func (context *Context) Html(code int, html string){
 	context.Status(code)
-	context.SetHeader("Content-Length", strconv.Itoa(len([]byte(html))))
+	context.SetHeader("Content-Length", strconv.Itoa(len(html)))
 	context.SetHeader("Content-Type", "text/html; charset=utf-8")
 	context.W.Write([]byte(html))
 }
@@ -88,11 +88,4 @@ func (context *Context) HtmlR(code int, content string){
 		</body>
 		</html>`, code, content)
 	context.Html(code, html)
-}
-
-
-func (context *Context) Data(code int, data []byte){
-	context.Status(code)
-	// io.Copy(context.w, file)
-	context.W.Write(data)
 }

@@ -12,7 +12,7 @@
 
 * detect files mime type ```https://github.com/gabriel-vasile/mimetype```
 
-* natural sort ```https://github.com/facette/natsort```
+* natural sort ```https://github.com/maruel/natural```
 
 * MultipartReader support large size and multi-part upload 
 
