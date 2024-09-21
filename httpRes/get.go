@@ -93,8 +93,12 @@ func respFile(context *Context, file *os.File){
 	}
 
 	mtype, _ := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
+	t := mtype.String()
+	if strings.HasSuffix(context.Path, ".css"){
+		t = "text/css; charset=utf-8"
+	}
 
-	context.SetHeader("Content-Type", mtype.String()) 
+	context.SetHeader("Content-Type", t) 
 	context.SetHeader("Content-Length", strconv.FormatInt(info.Size(), 10)) 
 	context.SetHeader("Accept-Ranges", "bytes")
 	
