@@ -96,6 +96,8 @@ func respFile(context *Context, file *os.File){
 	t := mtype.String()
 	if strings.HasSuffix(context.Path, ".css"){
 		t = "text/css; charset=utf-8"
+	}else if strings.HasSuffix(context.Path, ".js"){
+		t = "text/javascript; charset=utf-8"
 	}
 
 	context.SetHeader("Content-Type", t) 
