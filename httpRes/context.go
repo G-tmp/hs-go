@@ -15,7 +15,7 @@ type Context struct{
 	Path 		string
 	Method 		string
 	StatusCode 	int
-	// Cookies 	[]http.Cookie
+	Query		url.Values
 }
 
 
@@ -27,12 +27,8 @@ func NewContext(w http.ResponseWriter, r *http.Request) *Context{
 		W: w,
 		Path: path,
 		Method: r.Method,
+		Query: r.URL.Query(),
 	}
-}
-
-
-func (context *Context) Query(key string) string {
-	return context.R.URL.Query().Get(key)
 }
 
 

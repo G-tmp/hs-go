@@ -44,13 +44,6 @@ func uploadFile(context *Context) {
 		absPath := filepath.Join(configs.Root, context.Path, partr.FileName())
 		log.Println(absPath)
 
-		// check uploaded files exist or not
-		if _, err := os.Stat(absPath); err == nil {
-			content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
-		}else if errors.Is(err, os.ErrNotExist) {
-			content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
-		}
-
 		outputFile, err := os.Create(absPath)
 		if err != nil {
 			log.Println(err)
@@ -61,6 +54,14 @@ func uploadFile(context *Context) {
 
 		bWriter := bufio.NewWriter(outputFile)
 		io.Copy(bWriter, partr)
+
+		// check uploaded files exist or not
+		if _, err := os.Stat(absPath); err == nil {
+			content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
+		}else if errors.Is(err, os.ErrNotExist) {
+			content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
+		}
+		
 	}
 
 	context.HtmlR(200, "Uploaded <p></p>" + content)

@@ -3,6 +3,7 @@ package utils
 import (
     "net/url"
     "os"
+    "fmt"
     "strings"
     "path/filepath"
 )
@@ -10,30 +11,36 @@ import (
 
 func Index(path string, files []os.DirEntry, showHidden bool) string {
 	var sb strings.Builder
-    sb.WriteString("<!DOCTYPE html>\n")
-    sb.WriteString("<html>\n<head>\n")
-    sb.WriteString("<meta name=\"Content-Type\" content=\"text/html; charset=utf-8\">\n")
-    sb.WriteString("<title>")
-    sb.WriteString(path)
-    sb.WriteString("</title>\n")
-    sb.WriteString("<style type=\"text/css\">\n")
-    sb.WriteString("li{margin: 10px 0;}")
-    sb.WriteString("\n</style>\n</head>\n")
-    sb.WriteString("<body>\n")
-    sb.WriteString("<h1>Directory listing for ")
-    sb.WriteString(path)
-    sb.WriteString("</h1>\n")
+
+    var tf, oo string
     if showHidden {
-	    sb.WriteString("<a href=\"?showHidden=false\"><button>Show Hidden Files</button></a> on <p></p>")
+        tf = "false"
+        oo = "on"
     }else {
-		sb.WriteString("<a href=\"?showHidden=true\"><button>Show Hidden Files</button></a> off <p></p>")
+        tf = "true"
+        oo = "off"
     }
-    sb.WriteString("<form method=\"post\" enctype=\"multipart/form-data\">\n")
-    sb.WriteString("<input type=\"file\" name=\"file\" required=\"required\" multiple>")
-    sb.WriteString("&gt;&gt;")
-    sb.WriteString("<button type=\"submit\">Upload</button>")
-    sb.WriteString("</form>")
-    sb.WriteString("<hr>\n")
+
+    pp := fmt.Sprintf(
+        `<!DOCTYPE html>
+        <html>
+        <head>
+        <meta name="Content-Type" content="text/html; charset=utf-8">
+        <title>%s</title>
+        <style type="text/css">
+            li{margin: 10px 0;}
+        </style>
+        </head>
+        <body>
+        <h1>Directory listing for %s</h1>
+        <a href="?showHidden=%s"><button>Show Hidden Files</button></a> %s
+        <p></p>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="file", required="required" multiple=""> >> <button type="submit">Upload</button>
+        </form>
+        <hr>
+        `, path, path, tf, oo)
+    sb.WriteString(pp)
 
     // parent directory
     if path == "/" {
@@ -52,32 +59,27 @@ func Index(path string, files []os.DirEntry, showHidden bool) string {
 
     for _, f := range files {
     	if f.IsDir(){
-    		sb.WriteString("<li>")
-    		sb.WriteString("<a href=\"")
-            sb.WriteString(url.PathEscape(f.Name()))
-    		sb.WriteString("/")
-    		sb.WriteString("\">")
-    		sb.WriteString("<strong>")
-    		sb.WriteString(f.Name())
-    		sb.WriteString("/")
-    		sb.WriteString("</strong>")
-    		sb.WriteString("</a>")
-    		sb.WriteString("</li>\n")   
+            li := fmt.Sprintf(
+                `<li>
+                    <a href="%s/"><strong>%s</strong></a>
+                </li>
+                `, url.PathEscape(f.Name()), f.Name() + "/")
+            sb.WriteString(li)
     	}
     }
     for _, f := range files {
     	if !f.IsDir(){
-    		sb.WriteString("<li>")
-    		sb.WriteString("<a href=\"")
-            sb.WriteString(url.PathEscape(f.Name()))
-    		sb.WriteString("\">")
-    		sb.WriteString(f.Name())
-    		sb.WriteString("</a>")
-    		sb.WriteString("</li>\n")   
+            li := fmt.Sprintf(`
+                <li>
+                    <a href="%s">%s</a>&emsp; - &emsp;<a href="%s">%s</a>
+                </li>
+                `, url.PathEscape(f.Name()), f.Name(), url.PathEscape(f.Name()) + "?download", "DL")
+            sb.WriteString(li)
     	}
     }
 
     sb.WriteString("</ul>\n")
+    sb.WriteString("<hr>")
     sb.WriteString("</body>\n</html>")
 
     return sb.String()

@@ -36,10 +36,10 @@ func Get(context *Context){
 	defer file.Close()
 
 	// check parameter, set cookie and redirect
-	showHidden := context.Query("showHidden")
-	if showHidden != "" {
+	if context.Query.Has("showHidden") {
 		var cookie http.Cookie
-		if showHidden == "true" {
+		
+		if context.Query.Get("showHidden") == "true" {
 			cookie = http.Cookie{Name: "showHidden", Value: "true", Path: "/"}
 		} else{
 			cookie = http.Cookie{Name: "showHidden", Value: "false", Path: "/"}
@@ -72,7 +72,7 @@ func Get(context *Context){
 	    	respDir(context, false)
 	    }
 
-	}else {
+	} else {
 		respFile(context, file)
 	}
 
@@ -80,9 +80,14 @@ func Get(context *Context){
 
 
 func respFile(context *Context, file *os.File){
-	if  context.GetHeader("Range") != ""{
+
+	if context.GetHeader("Range") != ""{
 		partialReq(context, file)
 		return
+	}
+
+	if context.Query.Has("download"){
+		context.SetHeader("Content-Disposition", "attachment")
 	}
 
 	info, err := file.Stat()
