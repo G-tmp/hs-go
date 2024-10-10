@@ -2,15 +2,20 @@
 
  A tiny http server map local files
 
- ```go run main.go [-p] [-d]```
+ ```
+-d	mapping as server root directory
+-p  port
+-c  certificate for tls
+-k  certificate key	for lts
+ ```
 
 
 
-## dev
+## Dev
 
-* go version go1.22.1 linux/amd64
+* build on linux/amd64
 
-* detect files mime type ```https://github.com/gabriel-vasile/mimetype```
+* determine files mime type ```https://github.com/gabriel-vasile/mimetype```
 
 * natural sort ```https://github.com/maruel/natural```
 
@@ -18,14 +23,14 @@
 
 
 
-## Encountered Problems
-
-* fmt.Fprintf() and w.Write() do not flush content, response body may be empty
+## Solved Problems
 
 * http.DetectContentType() unable to detect flac 
 
 * if err ==  no work, use Errors.Is() instead
 
-* http.Error() delete content-type filed, so it detect content-type automatically
+* http.Error() delete content-type filed, so browser determine content-type automatically
 
 * URL en/decode ```url.PathUnescape(r.URL.EscapedPath()) & url.PathEscape()```
+
+* gabriel-vasile/mimetype unable determine ```css js``` and return text/plain

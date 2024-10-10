@@ -31,15 +31,26 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func start(port int) {
     httpHandler := new(Handler)
-    err := http.ListenAndServe(":" + strconv.Itoa(port), httpHandler)
-    if err != nil {
-        log.Println(err)
-        return 
+
+    if configs.Certificate != "" && configs.Certificate_Key != ""{
+        fmt.Println("Listening on https://127.0.0.1:" + strconv.Itoa(configs.Port), configs.Root)
+        err := http.ListenAndServeTLS(":" + strconv.Itoa(port), configs.Certificate, configs.Certificate_Key, httpHandler)
+        if err != nil {
+            log.Println(err)
+            return 
+        }
+    } else {
+        fmt.Println("Listening on http://127.0.0.1:" + strconv.Itoa(configs.Port), configs.Root)
+        err := http.ListenAndServe(":" + strconv.Itoa(port), httpHandler)
+        if err != nil {
+            log.Println(err)
+            return 
+        }
     }
+
 }
 
 
 func main() {
-    fmt.Println("Listening on http://127.0.0.1:" + strconv.Itoa(configs.Port), configs.Root)
     start(configs.Port)
 }
