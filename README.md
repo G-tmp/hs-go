@@ -3,10 +3,10 @@
  A tiny http server map local files
 
  ```
--d	mapping as server root directory
+-d  mapping as server root directory
 -p  port
 -c  certificate for tls
--k  certificate key	for lts
+-k  certificate key for tls
  ```
 
 
