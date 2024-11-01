@@ -1,31 +1,31 @@
 # go-http-server
 
- A tiny http server map local files
+ A tiny http(s) server for local files mapping
 
  ```
--d  mapping as server root directory
+-d  local directory as server root directory
 -p  port
--c  certificate for tls
--k  certificate key for tls
+-c  CA certificate for TLS
+-k  CA certificate key for TLS
  ```
 
 
 
 ## Dev
 
-* build on linux/amd64
+* develop on linux/amd64
 
 * determine files mime type ```https://github.com/gabriel-vasile/mimetype```
 
 * natural sort ```https://github.com/maruel/natural```
 
-* MultipartReader support large size and multi-part upload 
+* MultipartReader support large size and multi-part uploading
 
 
 
 ## Solved Problems
 
-* http.DetectContentType() unable to detect flac 
+* official http.DetectContentType() unable to detect flac 
 
 * if err ==  no work, use Errors.Is() instead
 
@@ -33,4 +33,4 @@
 
 * URL en/decode ```url.PathUnescape(r.URL.EscapedPath()) & url.PathEscape()```
 
-* gabriel-vasile/mimetype unable determine ```css js``` and return text/plain
+* gabriel-vasile/mimetype unable determine ```css js``` so return text/plain manually
