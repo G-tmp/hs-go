@@ -5,8 +5,8 @@
  ```
 -d  local directory as server root directory
 -p  port
--c  CA certificate for TLS
--k  CA certificate key for TLS
+-c  CA
+-k  CA key
  ```
 
 
@@ -20,6 +20,8 @@
 * natural sort ```https://github.com/maruel/natural```
 
 * MultipartReader support large size and multi-part uploading
+
+* local CA ```https://github.com/FiloSottile/mkcert```
 
 
 
