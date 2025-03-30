@@ -19,8 +19,8 @@ type Context struct{
 }
 
 
-func NewContext(w http.ResponseWriter, r *http.Request) *Context{
-	path, _ := url.PathUnescape(r.URL.EscapedPath())
+func NewContext(w http.ResponseWriter, r *http.Request) (*Context, error){
+	path, err := url.PathUnescape(r.URL.EscapedPath())
 
 	return &Context{
 		R: r,
@@ -28,7 +28,7 @@ func NewContext(w http.ResponseWriter, r *http.Request) *Context{
 		Path: path,
 		Method: r.Method,
 		Query: r.URL.Query(),
-	}
+	}, err
 }
 
 

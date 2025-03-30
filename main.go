@@ -14,7 +14,11 @@ type Handler struct{}
 
 
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-    context := httpRes.NewContext(w, r)
+    context, err := httpRes.NewContext(w, r)
+    if err != nil {
+        log.Println(err)
+        return 
+    }
 
     fmt.Println("+", r.RemoteAddr, r.Method, context.Path, r.URL.RawQuery)
 
