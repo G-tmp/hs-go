@@ -9,4 +9,7 @@ require (
 	github.com/maruel/natural v1.1.1
 )
 
-require golang.org/x/net v0.40.0 // indirect
+require (
+	github.com/lmittmann/tint v1.1.2 // indirect
+	golang.org/x/net v0.40.0 // indirect
+)

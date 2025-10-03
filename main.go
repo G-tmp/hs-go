@@ -1,10 +1,9 @@
 package main
 
 import (
-    "fmt"
     "net/http"
     "strconv"
-    "log"
+    "log/slog"
     "g-tmp/hs-go/httpRes"
     "g-tmp/hs-go/configs"
 )
@@ -13,14 +12,13 @@ import (
 type Handler struct{}
 
 
+// implement this method to taking over http request handling 
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     context, err := httpRes.NewContext(w, r)
     if err != nil {
-        log.Println(err)
+        slog.Error(err.Error(), "addr", r.RemoteAddr, "method", r.Method, "path", context.Path, "query", r.URL.RawQuery)
         return 
     }
-
-    fmt.Println("+", r.RemoteAddr, r.Method, context.Path, r.URL.RawQuery)
 
     switch context.Method {
     case "GET", "HEAD":
@@ -37,20 +35,21 @@ func start(port int) {
     httpHandler := new(Handler)
 
     if configs.Certificate != "" && configs.Certificate_Key != ""{
-        fmt.Println("Listening on https://127.0.0.1:" + strconv.Itoa(configs.Port), configs.Root)
+        slog.Info("Launch HTTPS Server", "addr","https://127.0.0.1:" + strconv.Itoa(configs.Port), "root", configs.Root)
         err := http.ListenAndServeTLS(":" + strconv.Itoa(port), configs.Certificate, configs.Certificate_Key, httpHandler)
         if err != nil {
-            log.Println(err)
+            slog.Error(err.Error())
             return 
         }
     } else {
-        fmt.Println("Listening on http://127.0.0.1:" + strconv.Itoa(configs.Port), configs.Root)
+        slog.Info("Launch HTTP Server", "addr","http://127.0.0.1:" + strconv.Itoa(configs.Port), "root", configs.Root)
         err := http.ListenAndServe(":" + strconv.Itoa(port), httpHandler)
         if err != nil {
-            log.Println(err)
+            slog.Error(err.Error())
             return 
         }
     }
+
 
 }
 

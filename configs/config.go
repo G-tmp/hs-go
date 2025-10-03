@@ -2,9 +2,12 @@ package configs
 
 import (
     "flag"
-    "log"
+    "log/slog"
     "os"
     "path/filepath"
+    "time"
+
+    "github.com/lmittmann/tint"
 )
 
 var (
@@ -18,8 +21,8 @@ var (
 func init(){
     home, err := os.UserHomeDir()
     if err != nil {
-        log.Println(err)
-        return 
+        slog.Error(err.Error())
+        os.Exit(1)
     }
     
     flag.IntVar(&Port, "p", 11111, "listening port, between 0 and 65535")
@@ -30,8 +33,27 @@ func init(){
 
     Root, err = filepath.Abs(Root)
     if err != nil {
-        log.Println(err)
+        slog.Error(err.Error())
+        os.Exit(1)
     }
 
-    log.SetFlags(log.LstdFlags | log.Lshortfile)
+    slog.SetDefault(slog.New(
+        tint.NewHandler(os.Stdout, &tint.Options{
+            Level:      slog.LevelInfo,
+            TimeFormat: time.DateTime,
+            AddSource:  true,
+            ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+                // log ignore string type with empty value
+                if a.Value.Kind() == slog.KindString && a.Value.String() == "" {
+                    return slog.Attr{}
+                }
+                // log ignore any type with nil value
+                if a.Value.Kind() == slog.KindAny && a.Value.Any() == nil {
+                    return slog.Attr{}
+                }
+                
+                return a
+            },
+        }),
+    ))
 }

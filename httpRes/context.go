@@ -42,7 +42,7 @@ func (context *Context) Cookie(key string) (*http.Cookie, error) {
 }
 
 
-func (context *Context) SetCookie(cookie *http.Cookie)  {
+func (context *Context) AddCookie(cookie *http.Cookie)  {
 	http.SetCookie(context.W, cookie)
 }
 
@@ -71,6 +71,7 @@ func (context *Context) Html(code int, html string){
 }
 
 
+// return error page
 func (context *Context) HtmlR(code int, content string){
 	html :=fmt.Sprintf(
 		`<!DOCTYPE html>
