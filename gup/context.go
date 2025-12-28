@@ -32,7 +32,8 @@ func newContext(w http.ResponseWriter, r *http.Request) (*Context, error){
 
 
 func (context *Context) Redirect(location string)  {
-	http.Redirect(context.W, context.R, location, http.StatusFound)
+	context.StatusCode = 302
+	http.Redirect(context.W, context.R, location, 302)
 }
 
 
@@ -63,9 +64,9 @@ func (context *Context) Status(code int){
 
 
 func (context *Context) Html(code int, html string){
-	context.Status(code)
 	context.SetHeader("Content-Length", strconv.Itoa(len(html)))
 	context.SetHeader("Content-Type", "text/html; charset=utf-8")
+	context.Status(code)
 	context.W.Write([]byte(html))
 }
 

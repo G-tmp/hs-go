@@ -3,21 +3,33 @@ package main
 import (
     "strconv"
     "log/slog"
+    "time"
     
     "g-tmp/hs-go/configs"
     "gup"
 )
 
 
-func main(){
+func logger(next gup.HandlerFunc) (gup.HandlerFunc) {
+    return func(c *gup.Context){
+        t := time.Now()
+        next(c)
+        
+        if c.StatusCode >= 500 {
+            slog.Error("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "code", c.StatusCode, "time", time.Since(t))
+        } else if c.StatusCode >= 400{
+            slog.Warn("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "code", c.StatusCode, "time", time.Since(t))
+        }else {
+            slog.Info("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "code", c.StatusCode, "time", time.Since(t))
+        }
+    }
+}
 
+func main(){
     gp := gup.New()
-    gp.Get(func(c *gup.Context){
-        get(c)
-    })
-    gp.Post(func(c *gup.Context){
-        post(c)
-    })
+    gp.Get(logger(get))
+    gp.Post(logger(post))
+
     if configs.Certificate != "" && configs.Certificate_Key != ""{
         slog.Info("Launch HTTPS Server", "addr","https://127.0.0.1:" + strconv.Itoa(configs.Port), "root", configs.Root)
         err := gp.RunTLS(":" + strconv.Itoa(configs.Port), configs.Certificate, configs.Certificate_Key)

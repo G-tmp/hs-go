@@ -10,10 +10,12 @@ import(
 )
 
 
+type HandlerFunc func(c *Context)
+
 type engine struct{}
 
-var getFunc func(*Context)
-var postFunc func(*Context)
+var getFunc HandlerFunc
+var postFunc HandlerFunc
 
 func (engine *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     context, err := newContext(w, r)
@@ -30,7 +32,7 @@ func (engine *engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         	getFunc(context)
     	}
     case "POST":
-    	if postFunc != nil {
+    	if postFunc == nil {
     		context.Html(200, "200 OK")
     	} else {
         	postFunc(context)
@@ -54,10 +56,10 @@ func (engine *engine) RunTLS(addr string, certificate string, key string) (err e
     return http.ListenAndServeTLS(addr, certificate, key, engine)
 }
 
-func (engine *engine) Get(handler func(*Context)){
+func (engine *engine) Get(handler HandlerFunc){
 	getFunc = handler
 }
 
-func (engine *engine) Post(handler func(*Context)){
+func (engine *engine) Post(handler HandlerFunc){
 	postFunc = handler
 }

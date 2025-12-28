@@ -5,7 +5,7 @@ import (
     "bufio"
     "path/filepath"
     "io"
-    "log/slog"
+    // "log/slog"
     "errors"
 
     "g-tmp/hs-go/configs"
@@ -24,7 +24,6 @@ func uploadFile(context *gup.Context) {
     
     multipartReader, err := context.R.MultipartReader()
     if err != nil {
-		slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
     	context.HtmlR(500, "500 Internal Server Error")
     	return 
     }
@@ -37,7 +36,6 @@ func uploadFile(context *gup.Context) {
 			if err == io.EOF{
 				break
 			}else {
-				slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 				context.HtmlR(500, "500 Internal Server Error")
 				return 
 			}
@@ -55,7 +53,6 @@ func uploadFile(context *gup.Context) {
 		
 		outputFile, err := os.Create(absPath)
 		if err != nil {
-			slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 			context.HtmlR(500, "500 Internal Server Error")
 			return
 		}
@@ -63,7 +60,7 @@ func uploadFile(context *gup.Context) {
 
 		bWriter := bufio.NewWriter(outputFile)
 		io.Copy(bWriter, partr)
-		slog.Info("", "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "file", partr.FileName())
+		// slog.Info("", "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "file", partr.FileName())
 	}
 
 	context.HtmlR(200, "Uploaded <p></p>" + content)

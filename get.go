@@ -10,7 +10,6 @@ import (
     "strconv"
     "strings"
     "sort"
-    "log/slog"
     "errors"
     
     "gup"
@@ -28,13 +27,10 @@ func get(context *gup.Context){
 	file, err := os.Open(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			slog.Warn(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 			context.HtmlR(404, "404 Not Found")
 		} else if errors.Is(err, fs.ErrPermission) {
-			slog.Warn(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 			context.HtmlR(403, "403 Forbidden")
 		}else {
-			slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 			context.HtmlR(500, "500 Internal Server Error")
 		}
 		return 
@@ -59,7 +55,6 @@ func get(context *gup.Context){
 
 	info, err := file.Stat()
 	if err != nil {
-		slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 		context.HtmlR(500, "can't get file MIME type")
 		return 
 	}
@@ -86,7 +81,7 @@ func get(context *gup.Context){
 		respFile(context, file, info)
 	}
 
-    slog.Info("", "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
+    // slog.Info("", "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 
 }
 
@@ -104,7 +99,6 @@ func respFile(context *gup.Context, file *os.File, info os.FileInfo){
 
 	mtype, err := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 	if err != nil {
-		slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 		context.HtmlR(500, "can't get file MIME type")
 	}
 	t := mtype.String()
@@ -117,6 +111,7 @@ func respFile(context *gup.Context, file *os.File, info os.FileInfo){
 	context.SetHeader("Content-Type", t) 
 	context.SetHeader("Content-Length", strconv.FormatInt(info.Size(), 10)) 
 	context.SetHeader("Accept-Ranges", "bytes")
+	context.Status(200)
 	
 	io.Copy(context.W, file)
 
@@ -139,7 +134,6 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo){
 	
 	mtype, err := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 	if err != nil {
-		slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 		context.HtmlR(500, "can't get file MIME type")
 		return
 	}
@@ -153,7 +147,6 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo){
 	
 	_, err = file.Seek(start, 0)
 	if err != nil {
-		slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
 		context.HtmlR(500, "500 Internal Server Error")
 		return
 	}
@@ -166,7 +159,6 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo){
 func respDir(context *gup.Context, showHidden bool){
 	files, err := os.ReadDir(filepath.Join(configs.Root, context.Path))
 	if err != nil {
-		slog.Error(err.Error(), "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
         context.HtmlR(500, "500 Internal Server Error")
         return
     }
