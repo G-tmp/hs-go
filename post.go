@@ -2,10 +2,9 @@ package main
 
 import (
     "os"
-    "bufio"
+    // "bufio"
     "path/filepath"
     "io"
-    // "log/slog"
     "errors"
 
     "g-tmp/hs-go/configs"
@@ -21,10 +20,12 @@ func post(context *gup.Context){
 
 
 func uploadFile(context *gup.Context) {
-    
+	defer context.R.Body.Close()
+
     multipartReader, err := context.R.MultipartReader()
     if err != nil {
-    	context.HtmlR(500, "500 Internal Server Error")
+    	// Isn't multipart/form-data or a multipart/mixed POST request
+    	context.HtmlR(400, "400 Bad Request")
     	return 
     }
 
@@ -37,30 +38,66 @@ func uploadFile(context *gup.Context) {
 				break
 			}else {
 				context.HtmlR(500, "500 Internal Server Error")
-				return 
+				return
 			}
 		}
-		defer partr.Close()
 
-		absPath := filepath.Join(configs.Root, context.Path, partr.FileName())
+		if partr.FileName() == "" {
+            // Skip non-file part
+            io.Copy(io.Discard, partr)
+            partr.Close()
+            continue
+        }
 
-		// check uploaded files exist in system or not
-		if _, err := os.Stat(absPath); err == nil {
+        filename := partr.FileName()
+        sysDir := filepath.Join(configs.Root, context.Path)
+
+        tmp, err := os.CreateTemp(sysDir, filename + "_tmp*")
+        if err != nil {
+        	partr.Close()
+        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	continue 
+        }
+
+        _, err = io.Copy(tmp, partr)
+        if err != nil {
+        	partr.Close()
+        	tmp.Close()
+        	os.Remove(tmp.Name())
+        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	continue
+        }
+
+        if err = tmp.Sync(); err != nil {
+        	partr.Close()
+        	tmp.Close()
+        	os.Remove(tmp.Name())
+        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	continue
+        }
+
+        partr.Close()
+
+        if err = tmp.Close(); err != nil {
+			partr.Close()
+			os.Remove(tmp.Name())
+        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+			continue
+		}
+
+		// check uploaded files exist or not
+		if _, err := os.Stat(filepath.Join(sysDir, filename)); err == nil {
 			content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
 		}else if errors.Is(err, os.ErrNotExist) {
 			content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
 		}
-		
-		outputFile, err := os.Create(absPath)
-		if err != nil {
-			context.HtmlR(500, "500 Internal Server Error")
-			return
-		}
-		defer outputFile.Close()
 
-		bWriter := bufio.NewWriter(outputFile)
-		io.Copy(bWriter, partr)
-		// slog.Info("", "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "file", partr.FileName())
+		// rename temp file 
+        if err = os.Rename(tmp.Name(), filepath.Join(sysDir, filename)); err != nil {
+        	os.Remove(tmp.Name())
+			content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+			continue
+        }
 	}
 
 	context.HtmlR(200, "Uploaded <p></p>" + content)
