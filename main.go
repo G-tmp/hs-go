@@ -10,17 +10,17 @@ import (
 )
 
 
-func logger(next gup.HandlerFunc) (gup.HandlerFunc) {
-    return func(c *gup.Context){
+func logger(next func(*gup.Context) error) gup.HandlerFunc {
+    return func(c *gup.Context) {
         t := time.Now()
-        next(c)
+        err := next(c)
         
         if c.StatusCode >= 500 {
-            slog.Error("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "code", c.StatusCode, "time", time.Since(t))
-        } else if c.StatusCode >= 400{
-            slog.Warn("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "code", c.StatusCode, "time", time.Since(t))
+            slog.Error("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t), "err", err)
+        } else if c.StatusCode >= 400 {
+            slog.Warn("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t), "err", err)
         }else {
-            slog.Info("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "code", c.StatusCode, "time", time.Since(t))
+            slog.Info("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t), "err", err)
         }
     }
 }

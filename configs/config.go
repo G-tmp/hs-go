@@ -41,7 +41,7 @@ func init(){
         tint.NewHandler(os.Stdout, &tint.Options{
             Level:      slog.LevelInfo,
             TimeFormat: time.DateTime,
-            AddSource:  true,
+            AddSource:  false,
             ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
                 // log ignore string type with empty value
                 if a.Value.Kind() == slog.KindString && a.Value.String() == "" {

@@ -2,7 +2,6 @@ package main
 
 import (
     "os"
-    // "bufio"
     "path/filepath"
     "io"
     "errors"
@@ -13,23 +12,24 @@ import (
 
 
 
-func post(context *gup.Context){
+func post(context *gup.Context) error {
 
-	uploadFile(context)
+	return uploadFile(context)
 }
 
 
-func uploadFile(context *gup.Context) {
+func uploadFile(context *gup.Context) error {
 	defer context.R.Body.Close()
 
     multipartReader, err := context.R.MultipartReader()
     if err != nil {
     	// Isn't multipart/form-data or a multipart/mixed POST request
     	context.HtmlR(400, "400 Bad Request")
-    	return 
+    	return err
     }
 
     var content string
+	var errs []error
 
 	for {
 		partr, err := multipartReader.NextPart()
@@ -38,7 +38,7 @@ func uploadFile(context *gup.Context) {
 				break
 			}else {
 				context.HtmlR(500, "500 Internal Server Error")
-				return
+				return err
 			}
 		}
 
@@ -56,6 +56,7 @@ func uploadFile(context *gup.Context) {
         if err != nil {
         	partr.Close()
         	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	errs = append(errs, err)
         	continue 
         }
 
@@ -65,6 +66,7 @@ func uploadFile(context *gup.Context) {
         	tmp.Close()
         	os.Remove(tmp.Name())
         	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	errs = append(errs, err)
         	continue
         }
 
@@ -73,6 +75,7 @@ func uploadFile(context *gup.Context) {
         	tmp.Close()
         	os.Remove(tmp.Name())
         	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	errs = append(errs, err)
         	continue
         }
 
@@ -82,6 +85,7 @@ func uploadFile(context *gup.Context) {
 			partr.Close()
 			os.Remove(tmp.Name())
         	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+        	errs = append(errs, err)
 			continue
 		}
 
@@ -96,9 +100,11 @@ func uploadFile(context *gup.Context) {
         if err = os.Rename(tmp.Name(), filepath.Join(sysDir, filename)); err != nil {
         	os.Remove(tmp.Name())
 			content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+			errs = append(errs, err)
 			continue
         }
 	}
 
 	context.HtmlR(200, "Uploaded <p></p>" + content)
+	return errors.Join(errs...)
 }

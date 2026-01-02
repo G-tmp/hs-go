@@ -10,7 +10,7 @@ import(
 )
 
 
-type HandlerFunc func(c *Context)
+type HandlerFunc func(*Context)
 
 type engine struct{}
 

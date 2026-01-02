@@ -22,18 +22,20 @@ import (
 
 
 
-func get(context *gup.Context){
+func get(context *gup.Context) error {
 
 	file, err := os.Open(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			context.HtmlR(404, "404 Not Found")
+			return err
 		} else if errors.Is(err, fs.ErrPermission) {
 			context.HtmlR(403, "403 Forbidden")
+			return err
 		}else {
 			context.HtmlR(500, "500 Internal Server Error")
+			return err
 		}
-		return 
 	}
 	defer file.Close()
 
@@ -49,48 +51,46 @@ func get(context *gup.Context){
 
 		context.AddCookie(&cookie)
 		context.Redirect(context.Path)
-		return
+		return nil
 	}
 
 
 	info, err := file.Stat()
 	if err != nil {
 		context.HtmlR(500, "can't get file MIME type")
-		return 
+		return err
 	}
 
 	if info.IsDir(){
 		if !strings.HasSuffix(context.Path, "/") {
 			context.Redirect(context.Path + "/")
-			return
+			return nil
 		}
 
 	    // check cookie
 		showHidden, err := context.Cookie("showHidden")
 	    if err == nil {
 	    	if showHidden.Value == "true" {
-				respDir(context, true)
+				return respDir(context, true)
 	    	}else {
-				respDir(context, false)
+				return respDir(context, false)
 	    	}
 	    }else if err ==  http.ErrNoCookie {
-	    	respDir(context, false)
+	    	return respDir(context, false)
 	    }
 
 	} else {
-		respFile(context, file, info)
+		return respFile(context, file, info)
 	}
 
-    // slog.Info("", "addr", context.R.RemoteAddr, "method", context.Method, "path", context.Path, "query", context.R.URL.RawQuery)
-
+    return nil
 }
 
 
-func respFile(context *gup.Context, file *os.File, info os.FileInfo){
+func respFile(context *gup.Context, file *os.File, info os.FileInfo) error {
 
 	if context.GetHeader("Range") != ""{
-		partialReq(context, file, info)
-		return
+		return partialReq(context, file, info)
 	}
 
 	if context.Query.Has("download"){
@@ -100,8 +100,10 @@ func respFile(context *gup.Context, file *os.File, info os.FileInfo){
 	mtype, err := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		context.HtmlR(500, "can't get file MIME type")
+		return err
 	}
 	t := mtype.String()
+	// mimetype unable to detect css js
 	if strings.HasSuffix(context.Path, ".css"){
 		t = "text/css; charset=utf-8"
 	}else if strings.HasSuffix(context.Path, ".js"){
@@ -114,19 +116,19 @@ func respFile(context *gup.Context, file *os.File, info os.FileInfo){
 	context.Status(200)
 	
 	io.Copy(context.W, file)
-
+	return nil
 }
 
 
 // handle range request
-func partialReq(context *gup.Context, file *os.File, info os.FileInfo){
+func partialReq(context *gup.Context, file *os.File, info os.FileInfo) error {
 
 	var start, end int64
 	fmt.Sscanf(context.GetHeader("Range"), "bytes=%d-%d", &start, &end)
 
 	if start < 0 ||start >= info.Size() ||end < 0 || end >= info.Size(){
 		context.HtmlR(416, fmt.Sprintf("out of index, length:%d",info.Size()))
-		return
+		return nil
 	}
 	if end == 0 {
 		end = info.Size() - 1
@@ -135,7 +137,7 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo){
 	mtype, err := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		context.HtmlR(500, "can't get file MIME type")
-		return
+		return err
 	}
    	rg := fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size())
 	context.SetHeader("Content-Range", rg)
@@ -148,19 +150,19 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo){
 	_, err = file.Seek(start, 0)
 	if err != nil {
 		context.HtmlR(500, "500 Internal Server Error")
-		return
+		return err
 	}
 	
 	io.CopyN(context.W, file, end - start + 1)
-	
+	return nil
 }
 
 
-func respDir(context *gup.Context, showHidden bool){
+func respDir(context *gup.Context, showHidden bool) error {
 	files, err := os.ReadDir(filepath.Join(configs.Root, context.Path))
 	if err != nil {
         context.HtmlR(500, "500 Internal Server Error")
-        return
+        return err
     }
     
     // filter hidden files 
@@ -184,5 +186,5 @@ func respDir(context *gup.Context, showHidden bool){
     index := utils.Index(context.Path, files, showHidden)
 
     context.Html(200, index)
-
+    return nil
 }
