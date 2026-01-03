@@ -44,67 +44,54 @@ func uploadFile(context *gup.Context) error {
 			}
 		}
 
-		if partr.FileName() == "" {
-            // Skip non-file part
-            io.Copy(io.Discard, partr)
-            partr.Close()
-            continue
-        }
+		func(){
+			defer partr.Close()
 
-        filename := partr.FileName()
-        sysDir := filepath.Join(configs.Root, context.Path)
+			if partr.FileName() == "" {
+	            // Skip non-file part
+	            io.Copy(io.Discard, partr)
+	            return
+	        }
 
-        tmp, err := os.CreateTemp(sysDir, filename + "_tmp*")
-        if err != nil {
-        	partr.Close()
-        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
-        	errs = append(errs, err)
-        	continue 
-        }
+	        filename := partr.FileName()
+	        sysDir := filepath.Join(configs.Root, context.Path)
 
-        _, err = io.Copy(tmp, partr)
-        if err != nil {
-        	partr.Close()
-        	tmp.Close()
-        	os.Remove(tmp.Name())
-        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
-        	errs = append(errs, err)
-        	continue
-        }
+	        tmp, err := os.CreateTemp(sysDir, filename + "_tmp*")
+	        if err != nil {
+	        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+	        	errs = append(errs, err)
+	        	return
+	        }
+	        defer tmp.Close()
+	        defer os.Remove(tmp.Name())
 
-        if err = tmp.Sync(); err != nil {
-        	partr.Close()
-        	tmp.Close()
-        	os.Remove(tmp.Name())
-        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
-        	errs = append(errs, err)
-        	continue
-        }
+	        _, err = io.Copy(tmp, partr)
+	        if err != nil {
+	        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+	        	errs = append(errs, err)
+	        	return
+	        }
 
-        partr.Close()
+	        if err = tmp.Sync(); err != nil {
+	        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+	        	errs = append(errs, err)
+	        	return
+	        }
 
-        if err = tmp.Close(); err != nil {
-			partr.Close()
-			os.Remove(tmp.Name())
-        	content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
-        	errs = append(errs, err)
-			continue
-		}
+			// check uploaded files exist or not
+			if _, err := os.Stat(filepath.Join(sysDir, filename)); err == nil {
+				content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
+			}else if errors.Is(err, os.ErrNotExist) {
+				content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
+			}
 
-		// check uploaded files exist or not
-		if _, err := os.Stat(filepath.Join(sysDir, filename)); err == nil {
-			content +=  "<a style=\"color:orange\">" + partr.FileName() + "</a>" + "<p></p>"
-		}else if errors.Is(err, os.ErrNotExist) {
-			content +=  "<a style=\"color:green\">" + partr.FileName() + "</a>" + "<p></p>"
-		}
-
-		// rename temp file 
-        if err = os.Rename(tmp.Name(), filepath.Join(sysDir, filename)); err != nil {
-        	os.Remove(tmp.Name())
-			content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
-			errs = append(errs, err)
-			continue
-        }
+			// rename temp file 
+	        if err = os.Rename(tmp.Name(), filepath.Join(sysDir, filename)); err != nil {
+				content += "<a style=\"color:red\">" + "Save " + filename + " failed" + "</a>" + "<p></p>"
+				errs = append(errs, err)
+				return
+	        }
+		}()
 	}
 
 	context.HtmlR(200, "Uploaded <p></p>" + content)
