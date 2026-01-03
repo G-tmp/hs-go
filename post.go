@@ -4,10 +4,12 @@ import (
     "os"
     "path/filepath"
     "io"
-    "errors"
+    stderr "errors"
 
     "g-tmp/hs-go/configs"
     "gup"
+
+    "github.com/pkg/errors"
 )
 
 
@@ -38,7 +40,7 @@ func uploadFile(context *gup.Context) error {
 				break
 			}else {
 				context.HtmlR(500, "500 Internal Server Error")
-				return err
+				return errors.WithStack(err)
 			}
 		}
 
@@ -106,5 +108,5 @@ func uploadFile(context *gup.Context) error {
 	}
 
 	context.HtmlR(200, "Uploaded <p></p>" + content)
-	return errors.Join(errs...)
+	return stderr.Join(errs...)
 }

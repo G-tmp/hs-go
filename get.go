@@ -10,7 +10,6 @@ import (
     "strconv"
     "strings"
     "sort"
-    "errors"
     
     "gup"
     "g-tmp/hs-go/utils"
@@ -18,6 +17,7 @@ import (
     
     "github.com/gabriel-vasile/mimetype"
     "github.com/maruel/natural"
+    "github.com/pkg/errors"
 )
 
 
@@ -34,7 +34,7 @@ func get(context *gup.Context) error {
 			return err
 		}else {
 			context.HtmlR(500, "500 Internal Server Error")
-			return err
+			return errors.WithStack(err)
 		}
 	}
 	defer file.Close()
@@ -58,7 +58,7 @@ func get(context *gup.Context) error {
 	info, err := file.Stat()
 	if err != nil {
 		context.HtmlR(500, "can't get file MIME type")
-		return err
+		return errors.WithStack(err)
 	}
 
 	if info.IsDir(){
@@ -100,7 +100,7 @@ func respFile(context *gup.Context, file *os.File, info os.FileInfo) error {
 	mtype, err := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		context.HtmlR(500, "can't get file MIME type")
-		return err
+		return errors.WithStack(err)
 	}
 	t := mtype.String()
 	// mimetype unable to detect css js
@@ -137,7 +137,7 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo) error {
 	mtype, err := mimetype.DetectFile(filepath.Join(configs.Root, context.Path))
 	if err != nil {
 		context.HtmlR(500, "can't get file MIME type")
-		return err
+		return errors.WithStack(err)
 	}
    	rg := fmt.Sprintf("bytes %d-%d/%d", start, end, info.Size())
 	context.SetHeader("Content-Range", rg)
@@ -150,7 +150,7 @@ func partialReq(context *gup.Context, file *os.File, info os.FileInfo) error {
 	_, err = file.Seek(start, 0)
 	if err != nil {
 		context.HtmlR(500, "500 Internal Server Error")
-		return err
+		return errors.WithStack(err)
 	}
 	
 	io.CopyN(context.W, file, end - start + 1)
@@ -162,7 +162,7 @@ func respDir(context *gup.Context, showHidden bool) error {
 	files, err := os.ReadDir(filepath.Join(configs.Root, context.Path))
 	if err != nil {
         context.HtmlR(500, "500 Internal Server Error")
-        return err
+        return errors.WithStack(err)
     }
     
     // filter hidden files 

@@ -4,6 +4,7 @@ import (
     "strconv"
     "log/slog"
     "time"
+    "fmt"
     
     "g-tmp/hs-go/configs"
     "gup"
@@ -16,11 +17,12 @@ func logger(next func(*gup.Context) error) gup.HandlerFunc {
         err := next(c)
         
         if c.StatusCode >= 500 {
-            slog.Error("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t), "err", err)
+            slog.Error("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t))
+            fmt.Printf("%+v\n", err)
         } else if c.StatusCode >= 400 {
             slog.Warn("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t), "err", err)
         }else {
-            slog.Info("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t), "err", err)
+            slog.Info("", "addr", c.R.RemoteAddr, "method", c.Method, "path", c.Path, "query", c.R.URL.RawQuery, "state", c.StatusCode, "time", time.Since(t))
         }
     }
 }
