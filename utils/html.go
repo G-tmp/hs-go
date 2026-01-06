@@ -26,13 +26,20 @@ func Index(path string, files []os.DirEntry, showHidden bool) string {
         <html>
         <head>
         <meta name="Content-Type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>%s</title>
         <style type="text/css">
-            li{margin: 10px 0;}
+            body {
+                white-space: normal; 
+                word-break: break-word; 
+                overflow-wrap: anywhere; 
+                overflow-x: hidden;
+            }
+            li { margin: 0.75em 0; }
         </style>
         </head>
         <body>
-        <h1>Directory listing for %s</h1>
+        <h2>Directory listing for %s</h2>
         <a href="?showHidden=%s"><button>Show Hidden Files</button></a> %s
         <p></p>
         <form method="post" enctype="multipart/form-data">
@@ -73,7 +80,7 @@ func Index(path string, files []os.DirEntry, showHidden bool) string {
                 <li>
                     <a href="%s">%s</a>&emsp; - &emsp;<a href="%s">%s</a>
                 </li>
-                `, url.PathEscape(f.Name()), f.Name(), url.PathEscape(f.Name()) + "?download", "DL")
+                `, url.PathEscape(f.Name()), f.Name(), url.PathEscape(f.Name()) + "?download", "↓")
             sb.WriteString(li)
     	}
     }
